@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>AI Resume & Career Guide</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <style>
+    body {
+      font-family: Arial;
+      padding: 20px;
+      background: #f2f7ff;
+    }
+
+    input, textarea, button {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+
+    button {
+      background: #0077cc;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+
+    .chat-box, .api-output {
+      background: #e6f0ff;
+      padding: 15px;
+      border-radius: 5px;
+      min-height: 50px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>📄 AI Resume Builder & Career Bot</h1>
+
+  <h2>📝 Resume Builder</h2>
+  <input id="name" placeholder="Full Name" />
+  <input id="email" placeholder="Email" />
+  <input id="education" placeholder="Education" />
+  <textarea id="skills" placeholder="Skills (comma separated)"></textarea>
+  <textarea id="experience" placeholder="Experience or Projects"></textarea>
+  <button onclick="generatePDF()">📄 Download Resume</button>
+
+  <h2>🤖 Career Guidance with AI</h2>
+  <input id="userInput" placeholder="💼 Type career like Web Developer, AI, Data Science..." />
+  <button onclick="getJobData()">🔍 Suggest Jobs</button>
+
+  <div id="chatOutput" class="chat-box"></div>
+  <div id="jobOutput" class="api-output"></div>
+
+  <script>
+    const { jsPDF } = window.jspdf;
+
+    const API_KEY = "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";
+
+    function generatePDF() {
+      const doc = new jsPDF();
+
+      const name = document.getElementById("name").value;
+      const email = document.getElementById("email").value;
+      const education = document.getElementById("education").value;
+      const skills = document.getElementById("skills").value;
+      const experience = document.getElementById("experience").value;
+
+      doc.setFontSize(18);
+      doc.text("Resume", 90, 15);
+
+      doc.setFontSize(12);
+      doc.text("Name: " + name, 10, 30);
+      doc.text("Email: " + email, 10, 40);
+      doc.text("Education: " + education, 10, 50);
+      doc.text("Skills: " + skills, 10, 60);
+      doc.text("Experience/Projects: " + experience, 10, 70);
+
+      doc.save("Resume.pdf");
+    }
+
+    async function getJobData() {
+      const prompt = document.getElementById("userInput").value.trim();
+      const chatBox = document.getElementById("chatOutput");
+      const jobOutput = document.getElementById("jobOutput");
+
+      if (!prompt) {
+        jobOutput.innerHTML = `<strong style="color:red;">❌ Please enter a career interest.</strong>`;
+        return;
+      }
+
+      chatBox.innerText = "🔄 Generating career suggestions...";
+      jobOutput.innerHTML = "";
+
+      try {
+        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + API_KEY
+          },
+          body: JSON.stringify({
+            model: "mistralai/mistral-7b-instruct",
+            messages: [
+              {
+                role: "system",
+                content: "You are a career guidance expert helping students choose job paths."
+              },
+              {
+                role: "user",
+                content: `Suggest 3 ideal job roles and career growth tips for someone interested in "${prompt}". Keep it simple and helpful for students.`
+              }
+            ]
+          })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.choices) {
+          throw new Error(data?.error?.message || "API error");
+        }
+
+        const reply = data.choices[0].message.content;
+
+        jobOutput.innerHTML = `
+          <strong>✨ Career Suggestions:</strong>
+          <br><br>
+          ${reply.replace(/\n/g, "<br>")}
+        `;
+
+        chatBox.innerText = "✅ AI response ready!";
+      } catch (error) {
+        console.error(error);
+        chatBox.innerText = "⚠ AI API Error.";
+        jobOutput.innerHTML = `<strong style="color:red;">❌ Error:</strong> ${error.message}`;
+      }
+    }
+  </script>
+
+</body>
+</html>
